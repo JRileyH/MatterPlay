@@ -1,8 +1,6 @@
 <script src="matter-js.js"></script>
-<canvas id="canvas"></canvas>
+<div></div>
 <script>
-var canvas = document.getElementById('canvas');
-var width = 1000, height = 1000;
 
 // module aliases
 var Engine = Matter.Engine,
@@ -11,8 +9,7 @@ var Engine = Matter.Engine,
     Bodies = Matter.Bodies;
 
 // create an engine
-var engine = Engine.create({
-});
+var engine = Engine.create();
 
 // create a renderer
 var render = Render.create({
