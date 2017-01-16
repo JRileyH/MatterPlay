@@ -32,7 +32,11 @@ var creationProperties = {
     maxFootSize: 30,
     minFootSize: 5,
     maxFootFaces: 8,
-    minFootFaces: 1
+    minFootFaces: 1,
+
+    //LEGS
+    maxWiggleRoom: 15,
+    minWiggleRoom: 5
 
 }
 
@@ -65,25 +69,6 @@ function shuffle(array) {
   return array;
 }
 
-var makeLegs = function(creature, feet, chance) {
-    if(feet.length>0) {
-        chance = chance || 1;
-        var index = randomSpan(0, feet.length-1);
-        var footA = feet[index];
-
-        var usableFeet = feet.filter(function(x){return x.id != footA.id});
-        usableFeet = shuffle(usableFeet);
-        for(var i in usableFeet) {
-            var footB = usableFeet[i];
-            if(Math.random()<chance) {
-                Composite.addConstraint(creature, Constraint.create(Common.extend({ bodyA: footA, bodyB: footB })));
-                chance /= 3;
-            }
-        }
-        makeLegs(creature, usableFeet);
-    }
-};
-
 //random creature creation
 var makeCreature = function(props){
     var creature = Composite.create({ label: 'Creature' });
@@ -106,30 +91,63 @@ var makeCreature = function(props){
         });
         Composite.addBody(creature, body);
     }
-    
-    makeLegs(creature, creature.bodies);
-    console.log(creature)
+    var makeLegs = function(creature, feet, chance) {
+        if(feet.length>0) {
+            chance = chance || 1;
+            var index = randomSpan(0, feet.length-1);
+            var footA = feet[index];
 
-    /*var bodyA = Bodies.circle(100, 100, 10);
-    var bodyB = Bodies.circle(250, 100, 50);
-    var bodyC = Bodies.circle(50, 150, 20);
-    var bodyD = Bodies.circle(120, 10, 40);
-    Composite.addBody(creature, bodyA);
-    Composite.addBody(creature, bodyB);
-    Composite.addBody(creature, bodyC);
-    Composite.addBody(creature, bodyD);
-    Composite.addConstraint(creature, Constraint.create(Common.extend({ bodyA: bodyB, bodyB: bodyA })));
-    Composite.addConstraint(creature, Constraint.create(Common.extend({ bodyA: bodyC, bodyB: bodyA })));
-    Composite.addConstraint(creature, Constraint.create(Common.extend({ bodyA: bodyD, bodyB: bodyA })));*/
-    creature.flex = function(l){
+            var usableFeet = feet.filter(function(x){return x.id != footA.id});
+            usableFeet = shuffle(usableFeet);
+            for(var i in usableFeet) {
+                var footB = usableFeet[i];
+                if(Math.random()<chance) {
+                    Composite.addConstraint(creature, Constraint.create(Common.extend({ bodyA: footA, bodyB: footB })));
+                    chance /= 3;
+                }
+            }
+            makeLegs(creature, usableFeet);
+        }
+    };
+    makeLegs(creature, creature.bodies);
+
+    //refit the creature
+    var refit = function(){
+        for(var i in creature.constraints){
+            creature.constraints[i].expanding = Math.random()>0.5;
+            creature.constraints[i].wiggleRoom = randomSpan(props.minWiggleRoom, props.maxWiggleRoom);
+            creature.constraints[i].staticLength = creature.constraints[i].length;
+            var bodyLength = creature.constraints[i].bodyA.circleRadius+creature.constraints[i].bodyB.circleRadius;
+            if(creature.constraints[i].length<bodyLength+3){
+                creature.constraints[i].length = bodyLength+3;
+                refit();
+                break;
+            }
+        }
+    }
+    refit();
+
+    creature.flex = function(){
         for(var i in this.constraints){
-            var amt = 0;
-            Math.random()>0.5 ? amt = Math.floor(Math.random()*l) : amt = -Math.floor(Math.random()*l);
-            this.constraints[i].length+=amt;
+            var c = this.constraints[i];
+            if(c.expanding){
+                if(c.length >= c.staticLength+c.wiggleRoom){
+                    c.expanding = false;
+                } else {
+                    c.length++;
+                }
+            } else {
+                if(c.length <= c.staticLength-c.wiggleRoom || c.length < (c.bodyA.circleRadius+c.bodyB.circleRadius+3)){
+                    c.expanding = true;
+                } else {
+                    c.length--;
+                }
+            }
         }
     }
 
-    console.log(creature.attributes);
+    console.log(creature);
+
     return creature;
 }
 
@@ -157,12 +175,22 @@ var wallR = Bodies.rectangle(10, 300, 5, 550, { isStatic: true });
 var wallL = Bodies.rectangle(790, 300, 5, 550, { isStatic: true });
 World.add(engine.world, [ground, wallR, wallL]);
 
+var wiggleInterval;
+var wiggling = false;
 function wiggle() {
-    for(var i in engine.world.composites){
-        var creature = engine.world.composites[i];
-        if(creature.hasOwnProperty('flex')){
-            creature.flex(50);
-        }
+    if(wiggling){
+        clearInterval(wiggleInterval);
+        wiggling = false;
+    } else {
+        wiggleInterval = setInterval(function(){
+            for(var i in engine.world.composites){
+                var creature = engine.world.composites[i];
+                if(creature.hasOwnProperty('flex')){
+                    creature.flex();
+                }
+            }
+        }, 10);
+        wiggling = true;
     }
 }
 
