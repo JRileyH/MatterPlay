@@ -29,7 +29,7 @@ var creationProperties = {
     //FEET
     maxFootNumber: 6,
     minFootNumber: 2,
-    maxFootSize: 40,
+    maxFootSize: 30,
     minFootSize: 5,
     maxFootFaces: 8,
     minFootFaces: 1
@@ -46,6 +46,44 @@ function randomSpan(min,max)
     return Math.floor(Math.random()*(max-min+1)+min);
 }
 
+function shuffle(array) {
+  var currentIndex = array.length, temporaryValue, randomIndex;
+
+  // While there remain elements to shuffle...
+  while (0 !== currentIndex) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    temporaryValue = array[currentIndex];
+    array[currentIndex] = array[randomIndex];
+    array[randomIndex] = temporaryValue;
+  }
+
+  return array;
+}
+
+var makeLegs = function(creature, feet, chance) {
+    if(feet.length>0) {
+        chance = chance || 1;
+        var index = randomSpan(0, feet.length-1);
+        var footA = feet[index];
+
+        var usableFeet = feet.filter(function(x){return x.id != footA.id});
+        usableFeet = shuffle(usableFeet);
+        for(var i in usableFeet) {
+            var footB = usableFeet[i];
+            if(Math.random()<chance) {
+                Composite.addConstraint(creature, Constraint.create(Common.extend({ bodyA: footA, bodyB: footB })));
+                chance /= 3;
+            }
+        }
+        makeLegs(creature, usableFeet);
+    }
+};
+
 //random creature creation
 var makeCreature = function(props){
     var creature = Composite.create({ label: 'Creature' });
@@ -53,16 +91,24 @@ var makeCreature = function(props){
         width: randomSpan(props.minWidth, props.maxWidth),
         height: randomSpan(props.minHeight, props.maxHeight),
         numberOfFeet: randomSpan(props.minFootNumber, props.maxFootNumber),
+        feet: []
     };
 
     for(var i = 0; i < creature.attributes.numberOfFeet; i++) {
         var footSize = randomSpan(props.minFootSize, props.maxFootSize);
-        var xSpawn = props.x + randomSpan(0, creature.attributes.width) - (footSize / 2);
-        var ySpawn = props.y + randomSpan(0, creature.attributes.height) - (footSize / 2);
+        var xSpawn = props.x + randomSpan(0, creature.attributes.width) - Math.floor(footSize / 2);
+        var ySpawn = props.y + randomSpan(0, creature.attributes.height) - Math.floor(footSize / 2);
         var body = Bodies.circle(xSpawn, ySpawn, footSize);
+        creature.attributes.feet.push({
+            x: xSpawn,
+            y: ySpawn,
+            size: footSize
+        });
         Composite.addBody(creature, body);
     }
-
+    
+    makeLegs(creature, creature.bodies);
+    console.log(creature)
 
     /*var bodyA = Bodies.circle(100, 100, 10);
     var bodyB = Bodies.circle(250, 100, 50);
