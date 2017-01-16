@@ -1,0 +1,25 @@
+{
+  "name": "matter-play",
+  "version": "0.0.1",
+  "description": "A matter of play",
+  "author": "James Harrington<jrileyharrington@gmail.com>",
+  "contributors": [
+    {
+      "name": "James Harrington",
+      "email": "foo.bar@example.com"
+    },
+    {
+      "name": "Andy Hahn",
+      "email": "ahahn0417@gmail.com"
+    }
+  ],
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Sleepy-Fish/MatterPlay"
+  },
+  "dependencies": {
+    "http-server": "^0.9.0",
+    "matter-js": "^0.11.1"
+  }
+}
