@@ -1,7 +1,7 @@
 <script src="matter-evolve.js"></script>
 <div>
     <button onclick="createComp()">spawn</button>
-    <button onclick="wiggle()">wiggle</button>
+    <button onclick="dupeComp()">dupe</button>
 </div>
 <script>
 
@@ -13,6 +13,7 @@ var Engine = Matter.Engine,
     Common = Matter.Common,
     Composite = Matter.Composite,
     Constraint = Matter.Constraint;
+    Runner = Matter.Runner;
 
 //creation properties
 var creationProperties = {
@@ -23,7 +24,7 @@ var creationProperties = {
     //CREATURE
     maxWidth: 350,
     minWidth: 50,
-    maxHeight: 250,
+    maxHeight: 350,
     minHeight: 50,
 
     //FEET
@@ -43,6 +44,9 @@ var creationProperties = {
 //creation action
 function createComp() {
     World.add(engine.world, makeCreature(creationProperties));
+}
+function dupeComp() {
+    World.add(engine.world, dupeCreature(lastCreature));
 }
 
 function randomSpan(min,max)
@@ -70,24 +74,43 @@ function shuffle(array) {
 }
 
 //random creature creation
+var lastCreature = null;
 var makeCreature = function(props){
     var creature = Composite.create({ label: 'Creature' });
     creature.attributes = {
         width: randomSpan(props.minWidth, props.maxWidth),
         height: randomSpan(props.minHeight, props.maxHeight),
         numberOfFeet: randomSpan(props.minFootNumber, props.maxFootNumber),
-        feet: []
+        feet: [],
+        legs: []
     };
 
     for(var i = 0; i < creature.attributes.numberOfFeet; i++) {
         var footSize = randomSpan(props.minFootSize, props.maxFootSize);
         var xSpawn = props.x + randomSpan(0, creature.attributes.width) - Math.floor(footSize / 2);
         var ySpawn = props.y + randomSpan(0, creature.attributes.height) - Math.floor(footSize / 2);
-        var body = Bodies.circle(xSpawn, ySpawn, footSize);
+        
+        var body = i===0 ? Bodies.circle(xSpawn, ySpawn, footSize, {
+            render: {
+                fillStyle: '#bbb',
+                strokeStyle: '#111',
+                lineWidth: 2
+            }
+        }) : Bodies.circle(xSpawn, ySpawn, footSize, {
+            render: {
+                fillStyle: '#333',
+                strokeStyle: '#111',
+                lineWidth: 2
+            }
+        })
+
+        body.order = i;
+
         creature.attributes.feet.push({
             x: xSpawn,
             y: ySpawn,
-            size: footSize
+            size: footSize,
+            order: i
         });
         Composite.addBody(creature, body);
     }
@@ -103,6 +126,10 @@ var makeCreature = function(props){
                 var footB = usableFeet[i];
                 if(Math.random()<chance) {
                     Composite.addConstraint(creature, Constraint.create(Common.extend({ bodyA: footA, bodyB: footB })));
+                    creature.attributes.legs.push({
+                        a: footA.order,
+                        b: footB.order
+                    });
                     chance /= 3;
                 }
             }
@@ -127,6 +154,7 @@ var makeCreature = function(props){
     }
     refit();
 
+    //add the motion function
     creature.flex = function(){
         for(var i in this.constraints){
             var c = this.constraints[i];
@@ -145,9 +173,77 @@ var makeCreature = function(props){
             }
         }
     }
+    console.log(creature);
+    var temp = {};
+    lastCreature = creature.attributes;
+    return creature;
+}
+
+//random creature creation
+var dupeCreature = function(gene){
+    var creature = Composite.create({ label: 'Creature' });
+    //mutate here
+    creature.attributes = {
+        width: gene.width,
+        height: gene.height,
+        numberOfFeet: gene.numberOfFeet,
+        feet: gene.feet,
+        legs: gene.legs
+    };
+
+    for(var i = 0; i < gene.feet.length; i++) {
+        var footSize = gene.feet[i].size;
+        var xSpawn = gene.feet[i].x;
+        var ySpawn = gene.feet[i].y;
+        
+        var body = i===0 ? Bodies.circle(xSpawn, ySpawn, footSize, {
+            render: {
+                fillStyle: '#bbb',
+                strokeStyle: '#111',
+                lineWidth: 2
+            }
+        }) : Bodies.circle(xSpawn, ySpawn, footSize, {
+            render: {
+                fillStyle: '#333',
+                strokeStyle: '#111',
+                lineWidth: 2
+            }
+        })
+        Composite.addBody(creature, body);
+    }
+
+    //make Legs
+    /*for(var i = 0; i < gene.legs.length; i++) {
+        Composite.addConstraint(creature, Constraint.create(Common.extend({
+            bodyA: footA,
+            bodyB: footB
+        })));
+    }*/
+
+    //refit the creature
+
+
+    //add the motion function
+    /*creature.flex = function(){
+        for(var i in this.constraints){
+            var c = this.constraints[i];
+            if(c.expanding){
+                if(c.length >= c.staticLength+c.wiggleRoom){
+                    c.expanding = false;
+                } else {
+                    c.length++;
+                }
+            } else {
+                if(c.length <= c.staticLength-c.wiggleRoom || c.length < (c.bodyA.circleRadius+c.bodyB.circleRadius+3)){
+                    c.expanding = true;
+                } else {
+                    c.length--;
+                }
+            }
+        }
+    }*/
 
     console.log(creature);
-
     return creature;
 }
 
@@ -159,43 +255,22 @@ var render = Render.create({
     element: document.body,
     engine: engine
 });
-
-var body = function () {
-    var alt = Math.random();
-    return Bodies.circle(400+alt, 20, 23, {
-        density: 0.0005,
-        frictionAir: 0.04,
-        restitution: 0.9,
-        friction: 0.01
-    });
-}
+render.options.wireframes = false;
 
 var ground = Bodies.rectangle(400, 610, 810, 60, { isStatic: true });
 var wallR = Bodies.rectangle(10, 300, 5, 550, { isStatic: true });
 var wallL = Bodies.rectangle(790, 300, 5, 550, { isStatic: true });
 World.add(engine.world, [ground, wallR, wallL]);
 
-var wiggleInterval;
-var wiggling = false;
-function wiggle() {
-    if(wiggling){
-        clearInterval(wiggleInterval);
-        wiggling = false;
-    } else {
-        wiggleInterval = setInterval(function(){
-            for(var i in engine.world.composites){
-                var creature = engine.world.composites[i];
-                if(creature.hasOwnProperty('flex')){
-                    creature.flex();
-                }
-            }
-        }, 10);
-        wiggling = true;
-    }
-}
-
 // run the engine
-Engine.run(engine);
+var runner = Engine.run(engine, null, function(){
+    for(var i in engine.world.composites){
+        var creature = engine.world.composites[i];
+        if(creature.hasOwnProperty('flex')){
+            creature.flex();
+        }
+    }
+});
 
 // run the renderer
 Render.run(render);

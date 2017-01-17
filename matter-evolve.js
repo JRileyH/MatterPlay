@@ -5926,7 +5926,7 @@ var Common = _dereq_('./Common');
      * @method run
      * @param {engine} engine
      */
-    Runner.run = function(runner, engine) {
+    Runner.run = function(runner, engine, cb) {
         // create runner if engine is first argument
         if (typeof runner.positionIterations !== 'undefined') {
             engine = runner;
@@ -5937,7 +5937,7 @@ var Common = _dereq_('./Common');
             runner.frameRequestId = _requestAnimationFrame(render);
 
             if (time && runner.enabled) {
-                Runner.tick(runner, engine, time);
+                Runner.tick(runner, engine, time, cb);
             }
         })();
 
@@ -5954,7 +5954,7 @@ var Common = _dereq_('./Common');
      * @param {engine} engine
      * @param {number} time
      */
-    Runner.tick = function(runner, engine, time) {
+    Runner.tick = function(runner, engine, time, cb) {
         var timing = engine.timing,
             correction = 1,
             delta;
@@ -6039,6 +6039,7 @@ var Common = _dereq_('./Common');
 
         Events.trigger(runner, 'afterTick', event);
         Events.trigger(engine, 'afterTick', event); // @deprecated
+        cb();
     };
 
     /**
