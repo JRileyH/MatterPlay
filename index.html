@@ -209,16 +209,19 @@ var dupeCreature = function(gene){
                 lineWidth: 2
             }
         })
+        body.order = i;
         Composite.addBody(creature, body);
     }
 
     //make Legs
-    /*for(var i = 0; i < gene.legs.length; i++) {
+    for(var i = 0; i < gene.legs.length; i++) {
+        var footA = creature.bodies.filter(function(x){return x.order==gene.legs[i].a})[0];
+        var footB = creature.bodies.filter(function(x){return x.order==gene.legs[i].b})[0];
         Composite.addConstraint(creature, Constraint.create(Common.extend({
             bodyA: footA,
             bodyB: footB
         })));
-    }*/
+    }
 
     //refit the creature
 
