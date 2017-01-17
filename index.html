@@ -22,21 +22,21 @@ var creationProperties = {
     y: 100,
 
     //CREATURE
-    maxWidth: 350,
+    maxWidth: 200,
     minWidth: 50,
-    maxHeight: 350,
+    maxHeight: 200,
     minHeight: 50,
 
     //FEET
-    maxFootNumber: 6,
-    minFootNumber: 2,
-    maxFootSize: 30,
-    minFootSize: 5,
+    maxFootNumber: 20,
+    minFootNumber: 10,
+    maxFootSize: 5,
+    minFootSize: 2,
     maxFootFaces: 8,
     minFootFaces: 1,
 
     //LEGS
-    maxWiggleRoom: 15,
+    maxWiggleRoom: 25,
     minWiggleRoom: 5
 
 }
@@ -197,8 +197,6 @@ var dupeCreature = function(gene){
         legs: gene.legs
     };
 
-    console.log(gene.legs);
-
     for(var i = 0; i < gene.feet.length; i++) {
         var footSize = gene.feet[i].size;
         var xSpawn = gene.feet[i].x;
@@ -234,6 +232,7 @@ var dupeCreature = function(gene){
         creature.constraints[i].expanding = gene.legs[i].expanding;
         creature.constraints[i].wiggleRoom = gene.legs[i].wiggleRoom;
         creature.constraints[i].staticLength = gene.legs[i].staticLength;
+        creature.constraints[i].length = creature.constraints[i].staticLength;
     }
 
     //refit the creature
