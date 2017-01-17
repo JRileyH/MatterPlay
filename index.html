@@ -142,8 +142,14 @@ var makeCreature = function(props){
     var refit = function(){
         for(var i in creature.constraints){
             creature.constraints[i].expanding = Math.random()>0.5;
+            creature.attributes.legs[i].expanding = creature.constraints[i].expanding;
+
             creature.constraints[i].wiggleRoom = randomSpan(props.minWiggleRoom, props.maxWiggleRoom);
+            creature.attributes.legs[i].wiggleRoom = creature.constraints[i].wiggleRoom;
+
             creature.constraints[i].staticLength = creature.constraints[i].length;
+            creature.attributes.legs[i].staticLength = creature.constraints[i].staticLength;
+
             var bodyLength = creature.constraints[i].bodyA.circleRadius+creature.constraints[i].bodyB.circleRadius;
             if(creature.constraints[i].length<bodyLength+3){
                 creature.constraints[i].length = bodyLength+3;
@@ -191,6 +197,8 @@ var dupeCreature = function(gene){
         legs: gene.legs
     };
 
+    console.log(gene.legs);
+
     for(var i = 0; i < gene.feet.length; i++) {
         var footSize = gene.feet[i].size;
         var xSpawn = gene.feet[i].x;
@@ -217,17 +225,22 @@ var dupeCreature = function(gene){
     for(var i = 0; i < gene.legs.length; i++) {
         var footA = creature.bodies.filter(function(x){return x.order==gene.legs[i].a})[0];
         var footB = creature.bodies.filter(function(x){return x.order==gene.legs[i].b})[0];
+
         Composite.addConstraint(creature, Constraint.create(Common.extend({
             bodyA: footA,
             bodyB: footB
         })));
+        
+        creature.constraints[i].expanding = gene.legs[i].expanding;
+        creature.constraints[i].wiggleRoom = gene.legs[i].wiggleRoom;
+        creature.constraints[i].staticLength = gene.legs[i].staticLength;
     }
 
     //refit the creature
 
 
     //add the motion function
-    /*creature.flex = function(){
+    creature.flex = function(){
         for(var i in this.constraints){
             var c = this.constraints[i];
             if(c.expanding){
@@ -244,7 +257,7 @@ var dupeCreature = function(gene){
                 }
             }
         }
-    }*/
+    }
 
     console.log(creature);
     return creature;
