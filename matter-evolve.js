@@ -5867,15 +5867,21 @@ var Common = _dereq_('./Common');
 (function() {
 
     var _requestAnimationFrame,
+        _requestAnimationFrameFast,
         _cancelAnimationFrame;
 
     if (typeof window !== 'undefined') {
         _requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame
                                       || window.mozRequestAnimationFrame || window.msRequestAnimationFrame;
-   
         _cancelAnimationFrame = window.cancelAnimationFrame || window.mozCancelAnimationFrame 
                                       || window.webkitCancelAnimationFrame || window.msCancelAnimationFrame;
     }
+
+    _requestAnimationFrameFast = function(callback){ 
+        _frameTimeout = setTimeout(function() { 
+            callback(Common.now()); 
+        }, 200 / 60);
+    };
 
     if (!_requestAnimationFrame) {
         var _frameTimeout;
@@ -5885,6 +5891,8 @@ var Common = _dereq_('./Common');
                 callback(Common.now()); 
             }, 1000 / 60);
         };
+
+        
 
         _cancelAnimationFrame = function() {
             clearTimeout(_frameTimeout);
@@ -5932,10 +5940,9 @@ var Common = _dereq_('./Common');
             engine = runner;
             runner = Runner.create();
         }
-
         (function render(time){
-            runner.frameRequestId = _requestAnimationFrame(render);
-
+            ff ? runner.frameRequestId = _requestAnimationFrameFast(render) : runner.frameRequestId = _requestAnimationFrame(render);
+            if(ff) {time *= 5};
             if (time && runner.enabled) {
                 Runner.tick(runner, engine, time, cb);
             }

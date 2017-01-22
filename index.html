@@ -35,11 +35,13 @@
     <b>Demo:</b>
     <br>
     <button type="button" onclick="spawnCreature()">Spawn</button>
-    <button type="button" onclick="clear()">Clear</button>
+    <button type="button" onclick="clearCreatures()">Clear</button>
     <hr>
     <b>Simulation:</b>
     <br>
     <button type="button" onclick="simulate()">Simulate</button>
+    <button id="ffButton" type="button" onclick="fastforward()">>></button>
+    <button id="sfButton" type="button" onclick="slowforward()" style="display:none;">></button>
     <button type="button" onclick="stop()">Stop</button>
     
 </div>
@@ -79,6 +81,15 @@ function shuffle(array) {
   return array;
 }
 
+function geomean(p1, p2, span) {
+    var variance = PoM()*randomSpan(0,span)
+    return Math.sqrt(p1*p2 + variance);
+}
+
+function PoM(){
+    return Math.random()>0.5 ? 1 : -1;
+}
+
 //input variables
 function props(){
     return {
@@ -114,8 +125,52 @@ var createPool = function(size) {
     var p = props();
     for(var i = 0; i < size; i++){
         pool[i] = createGene(p);
-    }
+        pool[i] = mutateGene({"width":175,"height":73,"numberOfFeet":13,"feet":[{"x":501,"y":555,"size":7,"order":0},{"x":450,"y":538,"size":3,"order":1},{"x":433,"y":512,"size":7,"order":2},{"x":565,"y":504,"size":4,"order":3},{"x":572,"y":510,"size":4,"order":4},{"x":466,"y":535,"size":7,"order":5},{"x":531,"y":502,"size":5,"order":6},{"x":422,"y":511,"size":7,"order":7},{"x":489,"y":562,"size":4,"order":8},{"x":500,"y":505,"size":7,"order":9},{"x":501,"y":501,"size":6,"order":10},{"x":506,"y":506,"size":3,"order":11},{"x":435,"y":555,"size":6,"order":12}],"legs":[{"a":11,"b":6,"expanding":false,"wiggleRoom":18,"staticLength":25},{"a":11,"b":2,"expanding":false,"wiggleRoom":20,"staticLength":73},{"a":3,"b":6,"expanding":true,"wiggleRoom":13,"staticLength":34},{"a":3,"b":4,"expanding":false,"wiggleRoom":11,"staticLength":9},{"a":1,"b":6,"expanding":false,"wiggleRoom":16,"staticLength":88},{"a":1,"b":0,"expanding":true,"wiggleRoom":8,"staticLength":53},{"a":1,"b":8,"expanding":true,"wiggleRoom":19,"staticLength":45},{"a":8,"b":7,"expanding":false,"wiggleRoom":14,"staticLength":84},{"a":8,"b":2,"expanding":false,"wiggleRoom":7,"staticLength":75},{"a":9,"b":6,"expanding":true,"wiggleRoom":14,"staticLength":31},{"a":9,"b":12,"expanding":false,"wiggleRoom":19,"staticLength":82},{"a":9,"b":4,"expanding":false,"wiggleRoom":13,"staticLength":72},{"a":2,"b":12,"expanding":true,"wiggleRoom":19,"staticLength":43},{"a":2,"b":6,"expanding":true,"wiggleRoom":11,"staticLength":98},{"a":4,"b":10,"expanding":false,"wiggleRoom":8,"staticLength":71},{"a":4,"b":7,"expanding":true,"wiggleRoom":12,"staticLength":150},{"a":6,"b":12,"expanding":false,"wiggleRoom":16,"staticLength":109},{"a":6,"b":5,"expanding":true,"wiggleRoom":9,"staticLength":72},{"a":7,"b":5,"expanding":false,"wiggleRoom":13,"staticLength":50},{"a":7,"b":10,"expanding":false,"wiggleRoom":22,"staticLength":79},{"a":7,"b":12,"expanding":false,"wiggleRoom":19,"staticLength":45},{"a":0,"b":12,"expanding":false,"wiggleRoom":12,"staticLength":66},{"a":0,"b":5,"expanding":true,"wiggleRoom":18,"staticLength":40},{"a":10,"b":12,"expanding":true,"wiggleRoom":5,"staticLength":85},{"a":10,"b":5,"expanding":true,"wiggleRoom":15,"staticLength":48},{"a":5,"b":12,"expanding":false,"wiggleRoom":10,"staticLength":36}]})
+    
+}
     return pool;
+}
+
+var mutateGene = function(pedigree){
+    var gene = {
+        width: pedigree.width,
+        height: pedigree.height,
+        numberOfFeet: pedigree.numberOfFeet,
+        feet: [],
+        legs: []
+    };
+
+    for(var i = 0; i < gene.numberOfFeet; i++) {
+        var footSize = pedigree.feet[i].size + PoM()*randomSpan(0,4);
+        var xSpawn = props.x + parseInt(pedigree.feet[i].x) + randomSpan(0,4);
+        console.log(xSpawn);
+        var ySpawn = props.y + parseInt(pedigree.feet[i].y) + randomSpan(0,4);
+
+        gene.feet.push({
+            x: xSpawn,
+            y: ySpawn,
+            size: footSize,
+            order: i
+        });
+    }
+
+    for(var i = 0; i < pedigree.legs.length; i++) {
+        var a = pedigree.legs[i].a;
+        var b = pedigree.legs[i].b;
+        var expanding = pedigree.legs[i].expanding;
+        var staticLength = pedigree.legs[i].staticLength;
+        var wiggleRoom = pedigree.legs[i].wiggleRoom + + PoM()*randomSpan(0,4);
+
+        gene.legs.push({
+            a:a,
+            b:b,
+            expanding:expanding,
+            staticLength:staticLength,
+            wiggleRoom:wiggleRoom
+        });
+    }
+
+    return gene;
 }
 
 var createGene = function(props){
@@ -251,16 +306,40 @@ var createCreature = function(gene){
 function spawnCreature() {
     World.add(engine.world, createCreature(createGene(props())));
 }
-function clear() {
-
+function clearCreatures() {
+    console.log("clear");
+    World.clear(engine.world, true);
 }
 
+var simulating = false;
+var pool = [];
 function simulate() {
-    var pool = createPool(100);
-    console.log(counter);
+    pool = createPool(100);
+    counter = 0;
+    creatureInSim = 0;
+    setTimeout(function(){
+        simulating = true;
+    },50);
+}
+var ff = false;
+function fastforward(){
+    if(simulating && !ff){
+        ff = true;
+        document.getElementById("ffButton").style.display = "none";
+        document.getElementById("sfButton").style.display = "inline-block";
+    }
+}
+function slowforward(){
+    if(simulating && ff){
+        ff = false;
+        document.getElementById("ffButton").style.display = "inline-block";
+        document.getElementById("sfButton").style.display = "none";
+    }
 }
 function stop() {
-
+    slowforward();
+    simulating = false;
+    
 }
 
 // create an engine
@@ -285,16 +364,53 @@ World.add(engine.world, [ground, wallR, wallL]);
 // run the engine
 var counter = 0;
 var time = 0;
+var creatureInSim = 0;
 var runner = Engine.run(engine, null, function() {
     for(var i in engine.world.composites){
         if(time<runner.counterTimestamp){
             time=runner.counterTimestamp;
             counter++;
-            console.log(counter);
         }
         var creature = engine.world.composites[i];
         if(creature.hasOwnProperty('flex')){
             creature.flex();
+        }
+    }
+    if(simulating){
+        if(engine.world.composites.length === 0){
+            counter = 0;
+            if(creatureInSim < pool.length){
+                pool[creatureInSim].fitness = 0;
+                World.add(engine.world, createCreature(pool[creatureInSim]));
+            } else {
+                console.log("Simulation Done");
+                simulating = false;
+                var bestFitness = 0;
+                var bestGene;
+                var average = 0;
+                for(var i = 0; i < pool.length; i++) {
+                    if(pool[i].fitness > bestFitness) {
+                        bestGene = pool[i]
+                    }
+                    average += pool[i].fitness;
+                }
+                average /= pool.length
+                console.log("Gene pool average fitness: "+average);
+                World.add(engine.world, createCreature(bestGene));
+            }
+        } else if (engine.world.composites.length === 1) {
+            if(counter >= 30){
+                clearCreatures();
+                creatureInSim++;
+            } else {
+                var jumpHeight = 1000-engine.world.composites[0].bodies[0].bounds.max.y
+                if(pool[creatureInSim].fitness < jumpHeight && counter > 2){
+                    pool[creatureInSim].fitness = jumpHeight;
+                    console.log(jumpHeight);
+                }
+            }
+        } else {
+            clearCreatures();
         }
     }
 });
